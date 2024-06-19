@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 )
 
-var whitespaceOrPunctuation = regexp.MustCompile(`[\s\p{P}]`)
+var whitespaceOrPunctuation = regexp.MustCompile(`[\s\p{P}]+`)
 
 type parser struct {
-	dict    *Dictionary
-	input   []*os.File
-	output  *os.File
-	inpath  []string
-	outpath string
-	Outchan chan ClassifiedWord
-	Newword chan string
-	classes <-chan Wordcategory
+	dict     *Dictionary
+	dictFile string
+	input    []*os.File
+	output   *os.File
+	inpath   []string
+	outpath  string
+	Outchan  chan ClassifiedWord
+	Newword  chan string
+	classes  <-chan Wordcategory
 }
 
 func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory) (*parser, error) {
@@ -26,6 +28,7 @@ func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wo
 		return nil, err
 	}
 	var p parser
+	p.dictFile = dict
 	p.dict = dictionary
 	p.inpath = inpath
 	p.outpath = outpath
@@ -60,6 +63,11 @@ func (p *parser) Parse() error {
 
 		for Scanner.Scan() {
 			word := Scanner.Text()
+			if word == "" {
+				continue
+			}
+			word = strings.ToLower(word)
+			wordnum++
 			class, ok := p.dict.GetEntry(word)
 			if !ok {
 				p.Newword <- word
@@ -67,23 +75,22 @@ func (p *parser) Parse() error {
 				p.dict.AddEntry(word, class, false)
 			}
 			p.Outchan <- ClassifiedWord{word, class}
-			positions[class] += fmt.Sprintf("TXT#%d-%d", i, wordnum)
+			positions[class] += fmt.Sprintf("TXT#%d-%d,", i, wordnum)
 			words[class] += word + ","
 		}
 	}
 
-	// Write header to output file
 	p.output.WriteString("TOKEN,LEXEMAS,POSICIONES\n")
-
 	for _, cat := range AvailableCategories {
 		p.output.WriteString(string(cat))
 		p.output.WriteString(";")
-		p.output.WriteString(words[cat])
+		p.output.WriteString(strings.TrimSuffix(words[cat], ","))
 		p.output.WriteString(";")
-		p.output.WriteString(positions[cat])
+		p.output.WriteString(strings.TrimSuffix(positions[cat], ","))
 		p.output.WriteString("\n")
 	}
 
+	p.Outchan <- ClassifiedWord{"", EOF}
 	return nil
 }
 
@@ -94,6 +101,10 @@ func (p *parser) Close() {
 	p.output.Close()
 	close(p.Outchan)
 	close(p.Newword)
+	err := p.dict.SaveToFile(p.dictFile)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func SplitWords(data []byte, atEOF bool) (advance int, token []byte, err error) {

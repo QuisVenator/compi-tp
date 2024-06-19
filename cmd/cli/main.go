@@ -43,16 +43,13 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	defer p.Close()
 
 	// Start the parser
 	go p.Parse()
 
 	// Start the display
-	go displayResults(p.Outchan, p.Newword, classchan)
-
-	// Wait for the user to finish
-	fmt.Println("Press enter to exit")
-
+	displayResults(p.Outchan, p.Newword, classchan)
 }
 
 // This function reads words and their classification from the output channel and displays them on the console.
@@ -61,15 +58,22 @@ func displayResults(output <-chan parser.ClassifiedWord, newwords <-chan string,
 	for {
 		select {
 		case word := <-output:
+			if word.Class == parser.EOF {
+				return
+			}
 			fmt.Printf("%s: %s\n", word.Word, word.Class)
 		case newword := <-newwords:
-			fmt.Printf("Please classify the word '%s': ", newword)
+			fmt.Printf("Please classify the word '%s':\n", newword)
 			for class := range parser.AvailableCategories {
-				fmt.Printf("%d: %s\n", class, parser.AvailableCategories[class])
+				fmt.Printf("%d: %s\n", class+1, parser.AvailableCategories[class])
 			}
 			var class int
 			fmt.Scan(&class)
-			classes <- parser.AvailableCategories[class]
+			for class < 1 || class > len(parser.AvailableCategories) {
+				fmt.Println("Invalid class. Please enter a valid class:")
+				fmt.Scan(&class)
+			}
+			classes <- parser.AvailableCategories[class-1]
 		}
 	}
 }

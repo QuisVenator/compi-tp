@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+
+dictionary.json
+test.txt
+output.csv

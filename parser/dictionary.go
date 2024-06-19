@@ -39,9 +39,11 @@ const (
 	DETERMINER   = "Determiner"
 	CONJUNCTION  = "Conjunction"
 	INTERJECTION = "Interjection"
+	ERROR_LX     = "Error"
+	EOF          = "EOF"
 )
 
-var AvailableCategories = []Wordcategory{NOUN, VERB, ADJECTIVE, ADVERB, PREPOSITION, PRONOUN, DETERMINER, CONJUNCTION, INTERJECTION}
+var AvailableCategories = []Wordcategory{NOUN, VERB, ADJECTIVE, ADVERB, PREPOSITION, PRONOUN, DETERMINER, CONJUNCTION, INTERJECTION, ERROR_LX}
 
 func NewDictionary() *Dictionary {
 	return &Dictionary{}
@@ -49,6 +51,8 @@ func NewDictionary() *Dictionary {
 
 func NewDictionaryFromFile(filename string) (*Dictionary, error) {
 	var fileFormat = UNKNOWN
+
+	// TODO: Evaluate necessity of saving file format
 	if strings.HasSuffix(filename, ".json") {
 		fileFormat = JSON
 	} else if strings.HasSuffix(filename, ".yaml") {
@@ -56,6 +60,12 @@ func NewDictionaryFromFile(filename string) (*Dictionary, error) {
 	} else {
 		// Abort early if the file format is not recognized
 		return nil, errors.New("invalid file format")
+	}
+
+	// Check if the file exists
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return NewDictionary(), nil
 	}
 
 	file, err := os.Open(filename)
@@ -95,6 +105,44 @@ func NewDictionaryFromYAMLFile(f *os.File) (*Dictionary, error) {
 	}
 
 	return dictionary, nil
+}
+
+func (d *Dictionary) SaveToJSONFile(f *os.File) error {
+	encoder := json.NewEncoder(f)
+	return encoder.Encode(d)
+}
+
+func (d *Dictionary) SaveToYAMLFile(f *os.File) error {
+	encoder := yaml.NewEncoder(f)
+	return encoder.Encode(d)
+}
+
+func (d *Dictionary) SaveToFile(filename string) error {
+	var fileFormat dictFileFormat
+	if strings.HasSuffix(filename, ".json") {
+		fileFormat = JSON
+	} else if strings.HasSuffix(filename, ".yaml") {
+		fileFormat = YAML
+	} else {
+		// Abort early if the file format is not recognized
+		return errors.New("invalid file format")
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	switch fileFormat {
+	case JSON:
+		return d.SaveToJSONFile(file)
+	case YAML:
+		return d.SaveToYAMLFile(file)
+	}
+
+	// This should never be reached
+	return errors.New("invalid file format")
 }
 
 func (d *Dictionary) AddEntry(word string, category Wordcategory, smart bool) {
