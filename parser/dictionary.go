@@ -16,7 +16,11 @@ type DictEntry struct {
 }
 type Dictionary map[string]DictEntry
 type dictFileFormat int
-type wordcategory string
+type Wordcategory string
+type ClassifiedWord struct {
+	Word  string
+	Class Wordcategory
+}
 
 // Enum of permissible dictionary file formats
 const (
@@ -26,16 +30,18 @@ const (
 )
 
 const (
-	NOUN         = "noun"
-	VERB         = "verb"
-	ADJECTIVE    = "adjective"
-	ADVERB       = "adverb"
-	PREPOSITION  = "preposition"
-	PRONOUN      = "pronoun"
-	DETERMINER   = "determiner"
-	CONJUNCTION  = "conjunction"
-	INTERJECTION = "interjection"
+	NOUN         = "Noun"
+	VERB         = "Verb"
+	ADJECTIVE    = "Adjective"
+	ADVERB       = "Adverb"
+	PREPOSITION  = "Preposition"
+	PRONOUN      = "Pronoun"
+	DETERMINER   = "Determiner"
+	CONJUNCTION  = "Conjunction"
+	INTERJECTION = "Interjection"
 )
+
+var AvailableCategories = []Wordcategory{NOUN, VERB, ADJECTIVE, ADVERB, PREPOSITION, PRONOUN, DETERMINER, CONJUNCTION, INTERJECTION}
 
 func NewDictionary() *Dictionary {
 	return &Dictionary{}
@@ -91,7 +97,7 @@ func NewDictionaryFromYAMLFile(f *os.File) (*Dictionary, error) {
 	return dictionary, nil
 }
 
-func (d *Dictionary) AddEntry(word string, category wordcategory, smart bool) {
+func (d *Dictionary) AddEntry(word string, category Wordcategory, smart bool) {
 	(*d)[word] = DictEntry{Category: string(category)}
 
 	// Some categories of the dictionary do more than just adding the word
@@ -106,13 +112,21 @@ func (d *Dictionary) AddEntry(word string, category wordcategory, smart bool) {
 	}
 }
 
+func (d *Dictionary) GetEntry(word string) (Wordcategory, bool) {
+	entry, ok := (*d)[word]
+	if !ok {
+		return "", false
+	}
+
+	return Wordcategory(entry.Category), true
+}
+
 // Category functions
 
 // This function will try to handle most cases of pluralizing and singularizing nouns
 // It will add the word to the dictionary if it is not already present
 // A best effort is made to handle most cases, but there are some edge cases that are not handled
 // For example, "child" -> "children", "goose" -> "geese", "cactus" -> "cacti", "deer" -> "deer" are not handled
-// It actually gets worse, as for all these examples an incorrect pluralization is added to the dictionary
 func (d *Dictionary) addNoun(noun string) {
 	var toAdd string
 	if strings.HasSuffix(noun, "ies") {
