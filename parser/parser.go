@@ -19,7 +19,7 @@ type Parser struct {
 	outpath  string
 	Outchan  chan ClassifiedWord
 	Newword  chan string
-	classes  <-chan Wordcategory
+	Classes  <-chan Wordcategory
 }
 
 func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory) (*Parser, error) {
@@ -47,7 +47,7 @@ func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wo
 
 	p.Outchan = make(chan ClassifiedWord)
 	p.Newword = make(chan string)
-	p.classes = classchan
+	p.Classes = classchan
 
 	return &p, nil
 }
@@ -71,7 +71,7 @@ func (p *Parser) Parse() error {
 			class, ok := p.dict.GetEntry(word)
 			if !ok {
 				p.Newword <- word
-				class = <-p.classes
+				class = <-p.Classes
 				p.dict.AddEntry(word, class, false)
 			}
 			p.Outchan <- ClassifiedWord{word, class}

@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -17,40 +15,11 @@ import (
 	"github.com/QuisVenator/compi-tp/parser"
 )
 
-type Word struct {
-	Class string
-	Word  string
-}
-
 func main() {
-	classifiedWordsCh := make(chan Word)
-	newWordsCh := make(chan string)
-	userChosenClassCh := make(chan Word)
-
-	// Simulating incoming words for testing purposes
-	go func() {
-		for _, word := range []string{"apple", "banana", "cherry"} {
-			newWordsCh <- word
-			word := <-userChosenClassCh
-			classifiedWordsCh <- word
-		}
-		// List of 50 already classified words
-		for i := 0; i < 50; i++ {
-			for _, word := range []Word{
-				{Class: "Fruit", Word: "apple"},
-				{Class: "Fruit", Word: "banana"},
-				{Class: "Fruit", Word: "cherry"}} {
-				classifiedWordsCh <- word
-				time.Sleep(10 * time.Millisecond)
-			}
-		}
-
-	}()
-
-	runGui(classifiedWordsCh, newWordsCh, userChosenClassCh)
+	runGui()
 }
 
-func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClassCh chan Word) {
+func runGui() {
 	processedWords := make(map[string]struct{})
 	processedWordsText := ""
 	classifiedText := ""
@@ -96,15 +65,19 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 
 	// Run update loop
 	updateLoop := func() {
-		startup(w)
+		userChosenClassCh := make(chan parser.Wordcategory)
+		p := startup(w, userChosenClassCh)
+		classifiedWordsCh := p.Outchan
+		newWordsCh := p.Newword
 		w.SetContent(content)
+		go p.Parse()
 
 		for {
 			select {
 			case word := <-classifiedWordsCh:
 				processedWords[word.Word] = struct{}{}
 				processedWordsText += word.Word + " "
-				classifiedText += word.Class + " "
+				classifiedText += string(word.Class) + " "
 				processedWordsCount++
 				processedWordsTextField.Segments[1].(*widget.TextSegment).Text = processedWordsText
 				processedWordsTextField.Refresh()
@@ -116,13 +89,12 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 				var dia *dialog.CustomDialog
 
 				// Create classification dialog
-				classes := []string{"Fruit", "Vegetable", "Animal"}
 				prompt := widget.NewLabel(fmt.Sprintf("Classify '%s'", word))
 
-				classBtns := make([]fyne.CanvasObject, len(classes))
-				for i, class := range classes {
-					classBtns[i] = widget.NewButton(class, func() {
-						userChosenClassCh <- Word{Class: class, Word: word}
+				catBtns := make([]fyne.CanvasObject, len(parser.AvailableCategories))
+				for i, cat := range parser.AvailableCategories {
+					catBtns[i] = widget.NewButton(string(cat), func() {
+						userChosenClassCh <- cat
 						newWordsCount++
 						newWordsCountLabel.SetText(fmt.Sprintf("New Words Classified: %d", newWordsCount))
 						dia.Hide()
@@ -130,7 +102,7 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 				}
 
 				diaContent := container.NewVBox(
-					append([]fyne.CanvasObject{prompt}, classBtns...)...,
+					append([]fyne.CanvasObject{prompt}, catBtns...)...,
 				)
 
 				dia = dialog.NewCustomWithoutButtons("Classify Word", diaContent, w)
@@ -143,13 +115,13 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 	w.ShowAndRun()
 }
 
-func startup(w fyne.Window) (p *parser.Parser, err error) {
+func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory) *parser.Parser {
 	var exPath string
-	ex, err := os.Executable()
-	if err == nil {
-		exPath = filepath.Dir(ex)
-	} else {
+	ex, err := os.Getwd()
+	if err != nil {
 		exPath = "./"
+	} else {
+		exPath = ex + "/"
 	}
 
 	inputFilePaths := []string{}
@@ -261,11 +233,11 @@ func startup(w fyne.Window) (p *parser.Parser, err error) {
 	// Run loop for startup
 	for {
 		<-startCh
-		p, err := parser.NewParser(dictPath, inputFilePaths, outputPath, nil)
+		p, err := parser.NewParser(dictPath, inputFilePaths, outputPath, categoryCh)
 		if err != nil {
 			dialog.ShowError(err, w)
 		} else {
-			return p, nil
+			return p
 		}
 	}
 }
