@@ -20,6 +20,6 @@
 # Go workspace file
 go.work
 
-dictionary.json
+*.json
 test.txt
 output.csv

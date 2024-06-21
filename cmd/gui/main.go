@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -33,12 +32,14 @@ func main() {
 			classifiedWordsCh <- word
 		}
 		// List of 50 already classified words
-		for _, word := range []Word{
-			{Class: "Fruit", Word: "apple"},
-			{Class: "Fruit", Word: "banana"},
-			{Class: "Fruit", Word: "cherry"}} {
-			classifiedWordsCh <- word
-			time.Sleep(10 * time.Millisecond)
+		for i := 0; i < 50; i++ {
+			for _, word := range []Word{
+				{Class: "Fruit", Word: "apple"},
+				{Class: "Fruit", Word: "banana"},
+				{Class: "Fruit", Word: "cherry"}} {
+				classifiedWordsCh <- word
+				time.Sleep(10 * time.Millisecond)
+			}
 		}
 
 	}()
@@ -94,22 +95,6 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 	updateLoop := func() {
 		startup(w)
 		w.SetContent(content)
-		dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
-			if err != nil {
-				dialog.ShowError(err, w)
-				return
-			}
-			if reader == nil {
-				return
-			}
-			defer reader.Close()
-			file, err := os.Open(reader.URI().Path())
-			if err != nil {
-				dialog.ShowError(err, w)
-				return
-			}
-			defer file.Close()
-		}, w)
 
 		for {
 			select {
