@@ -109,6 +109,7 @@ func NewDictionaryFromYAMLFile(f *os.File) (*Dictionary, error) {
 
 func (d *Dictionary) SaveToJSONFile(f *os.File) error {
 	encoder := json.NewEncoder(f)
+	encoder.SetIndent("", "  ")
 	return encoder.Encode(d)
 }
 

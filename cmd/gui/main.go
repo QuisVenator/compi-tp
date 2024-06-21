@@ -16,10 +16,6 @@ import (
 )
 
 func main() {
-	runGui()
-}
-
-func runGui() {
 	processedWords := make(map[string]struct{})
 	processedWordsText := ""
 	classifiedText := ""
@@ -75,6 +71,11 @@ func runGui() {
 		for {
 			select {
 			case word := <-classifiedWordsCh:
+				if word.Class == parser.EOF {
+					p.Close()
+					return
+				}
+
 				processedWords[word.Word] = struct{}{}
 				processedWordsText += word.Word + " "
 				classifiedText += string(word.Class) + " "

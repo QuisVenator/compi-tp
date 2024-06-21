@@ -1,0 +1,29 @@
+{
+  "brown": {
+    "category": "Adjective"
+  },
+  "dog": {
+    "category": "Noun"
+  },
+  "fox": {
+    "category": "Noun"
+  },
+  "grey": {
+    "category": "Adjective"
+  },
+  "jumps": {
+    "category": "Verb"
+  },
+  "lazy": {
+    "category": "Adjective"
+  },
+  "over": {
+    "category": "Preposition"
+  },
+  "quick": {
+    "category": "Adjective"
+  },
+  "the": {
+    "category": "Adverb"
+  }
+}
