@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -9,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/QuisVenator/compi-tp/parser"
@@ -141,9 +144,17 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 }
 
 func startup(w fyne.Window) (p *parser.Parser, err error) {
+	var exPath string
+	ex, err := os.Executable()
+	if err == nil {
+		exPath = filepath.Dir(ex)
+	} else {
+		exPath = "./"
+	}
+
 	inputFilePaths := []string{}
-	dictPath := "dictionary.json"
-	outputPath := "output.csv"
+	dictPath := exPath + "dictionary.json"
+	outputPath := exPath + "output.csv"
 	startCh := make(chan struct{})
 
 	// Widgets
@@ -176,7 +187,7 @@ func startup(w fyne.Window) (p *parser.Parser, err error) {
 				widget.NewLabel("Please select dictionary to use:"),
 				dictionarySelectedLabel,
 				widget.NewButton("Open Dictionary", func() {
-					dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+					d := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 						if err != nil {
 							dialog.ShowError(err, w)
 							return
@@ -190,6 +201,8 @@ func startup(w fyne.Window) (p *parser.Parser, err error) {
 						dictionarySelectedLabel.Objects[1].(*widget.Label).SetText(dictPath)
 						dictionarySelectedLabel.Refresh()
 					}, w)
+					d.SetFilter(storage.NewExtensionFileFilter([]string{".json", ".yaml"}))
+					d.Show()
 				}),
 			),
 		),
