@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -9,7 +10,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/QuisVenator/compi-tp/parser"
 )
 
 type Word struct {
@@ -51,7 +54,7 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 	processedWordsCount := 0
 
 	a := app.New()
-	w := a.NewWindow("Word Classifier")
+	w := a.NewWindow("MNLTP")
 
 	// Widgets
 	header := widget.NewRichTextFromMarkdown("# MNLTP\n___")
@@ -85,11 +88,29 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 		newWordsCountLabel,
 	)
 
-	w.SetContent(content)
 	w.Resize(fyne.NewSize(1920, 1080))
 
 	// Run update loop
-	go func() {
+	updateLoop := func() {
+		startup(w)
+		w.SetContent(content)
+		dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+			if reader == nil {
+				return
+			}
+			defer reader.Close()
+			file, err := os.Open(reader.URI().Path())
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+			defer file.Close()
+		}, w)
+
 		for {
 			select {
 			case word := <-classifiedWordsCh:
@@ -128,7 +149,125 @@ func runGui(classifiedWordsCh chan Word, newWordsCh chan string, userChosenClass
 				dia.Show()
 			}
 		}
-	}()
+	}
 
+	go updateLoop()
 	w.ShowAndRun()
+}
+
+func startup(w fyne.Window) (p *parser.Parser, err error) {
+	inputFilePaths := []string{}
+	dictPath := "dictionary.json"
+	outputPath := "output.csv"
+	startCh := make(chan struct{})
+
+	// Widgets
+	dictionarySelectedLabel := container.NewHBox(
+		widget.NewIcon(theme.DocumentIcon()),
+		widget.NewLabel(dictPath),
+	)
+	outputLabel := widget.NewLabel(outputPath)
+	inputFileList := widget.NewList(
+		func() int {
+			return len(inputFilePaths)
+		},
+		func() fyne.CanvasObject {
+			return container.NewHBox(
+				widget.NewIcon(theme.DocumentIcon()),
+				widget.NewLabel("input.txt"),
+			)
+		},
+		func(i widget.ListItemID, item fyne.CanvasObject) {
+			item.(*fyne.Container).Objects[1].(*widget.Label).SetText(inputFilePaths[i])
+		},
+	)
+	inputFileList.Resize(fyne.NewSize(inputFileList.MinSize().Width, inputFileList.MinSize().Height*3))
+
+	// Layout
+	content := container.NewBorder(
+		container.NewVBox(
+			widget.NewLabel("Welcome to MNLTP!"),
+			container.NewVBox(
+				widget.NewLabel("Please select dictionary to use:"),
+				dictionarySelectedLabel,
+				widget.NewButton("Open Dictionary", func() {
+					dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+						if err != nil {
+							dialog.ShowError(err, w)
+							return
+						}
+						if reader == nil {
+							dictPath = "dictionary.json"
+						} else {
+							dictPath = reader.URI().Path()
+							defer reader.Close()
+						}
+						dictionarySelectedLabel.Objects[1].(*widget.Label).SetText(dictPath)
+						dictionarySelectedLabel.Refresh()
+					}, w)
+				}),
+			),
+		),
+		container.NewBorder(
+			container.NewHBox(
+				widget.NewLabel("Save output to:"),
+				outputLabel,
+				widget.NewButton("Change", func() {
+					dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+						if err != nil {
+							dialog.ShowError(err, w)
+							return
+						}
+						if writer != nil {
+							outputPath = writer.URI().Path()
+							defer writer.Close()
+						}
+						outputLabel.SetText(outputPath)
+					}, w)
+				}),
+			),
+			widget.NewButton("Start", func() {
+				startCh <- struct{}{}
+			}),
+			nil,
+			nil,
+			nil,
+		),
+		nil,
+		nil,
+		container.NewBorder(
+			widget.NewLabel("Please select input files:"),
+			widget.NewButton("Add Input File", func() {
+				dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+					if err != nil {
+						dialog.ShowError(err, w)
+						return
+					}
+					if reader == nil {
+						return
+					}
+					defer reader.Close()
+
+					inputFilePaths = append(inputFilePaths, reader.URI().Path())
+					inputFileList.Refresh()
+				}, w)
+			}),
+			nil,
+			nil,
+			inputFileList,
+		),
+	)
+
+	w.SetContent(content)
+
+	// Run loop for startup
+	for {
+		<-startCh
+		p, err := parser.NewParser(dictPath, inputFilePaths, outputPath, nil)
+		if err != nil {
+			dialog.ShowError(err, w)
+		} else {
+			return p, nil
+		}
+	}
 }

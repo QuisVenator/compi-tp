@@ -10,7 +10,7 @@ import (
 
 var whitespaceOrPunctuation = regexp.MustCompile(`[\s\p{P}]+`)
 
-type parser struct {
+type Parser struct {
 	dict     *Dictionary
 	dictFile string
 	input    []*os.File
@@ -22,12 +22,12 @@ type parser struct {
 	classes  <-chan Wordcategory
 }
 
-func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory) (*parser, error) {
+func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory) (*Parser, error) {
 	dictionary, err := NewDictionaryFromFile(dict)
 	if err != nil {
 		return nil, err
 	}
-	var p parser
+	var p Parser
 	p.dictFile = dict
 	p.dict = dictionary
 	p.inpath = inpath
@@ -52,7 +52,7 @@ func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wo
 	return &p, nil
 }
 
-func (p *parser) Parse() error {
+func (p *Parser) Parse() error {
 	positions := make(map[Wordcategory]string)
 	words := make(map[Wordcategory]string)
 
@@ -94,7 +94,7 @@ func (p *parser) Parse() error {
 	return nil
 }
 
-func (p *parser) Close() {
+func (p *Parser) Close() {
 	for _, input := range p.input {
 		input.Close()
 	}
