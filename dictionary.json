@@ -5,11 +5,17 @@
   "dog": {
     "category": "Noun"
   },
+  "fence": {
+    "category": "Adverb"
+  },
   "fox": {
     "category": "Noun"
   },
   "grey": {
     "category": "Adjective"
+  },
+  "jumped": {
+    "category": "Verb"
   },
   "jumps": {
     "category": "Verb"

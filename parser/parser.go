@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var whitespaceOrPunctuation = regexp.MustCompile(`[\s\p{P}]+`)
@@ -20,6 +21,18 @@ type Parser struct {
 	Outchan  chan ClassifiedWord
 	Newword  chan string
 	Classes  <-chan Wordcategory
+}
+
+type Runinfo struct {
+	WordCount               int
+	DistinctWordCount       int
+	WordPerCategory         map[Wordcategory]int
+	DistinctWordPerCategory map[Wordcategory]int
+	NewWordCount            int
+	NewWordPerCategory      map[Wordcategory]int
+	FileCount               int
+	TimeSpent               time.Duration
+	TimeWaited              time.Duration
 }
 
 func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory) (*Parser, error) {
@@ -53,6 +66,13 @@ func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wo
 }
 
 func (p *Parser) Parse() error {
+	info := Runinfo{
+		WordPerCategory:         make(map[Wordcategory]int),
+		DistinctWordPerCategory: make(map[Wordcategory]int),
+		NewWordPerCategory:      make(map[Wordcategory]int),
+	}
+	auxmap := make(map[string]int)
+	t_start := time.Now()
 	positions := make(map[Wordcategory]string)
 	words := make(map[Wordcategory]string)
 
@@ -71,9 +91,24 @@ func (p *Parser) Parse() error {
 			class, ok := p.dict.GetEntry(word)
 			if !ok {
 				p.Newword <- word
+				t_wait := time.Now()
 				class = <-p.Classes
+				info.TimeWaited += time.Since(t_wait)
 				p.dict.AddEntry(word, class, false)
+
+				// Info
+				info.NewWordCount++
+				info.NewWordPerCategory[class]++
 			}
+			// Info
+			info.WordCount++
+			if auxmap[word] == 0 {
+				info.DistinctWordCount++
+				info.DistinctWordPerCategory[class]++
+			}
+			info.WordPerCategory[class]++
+			auxmap[word]++
+
 			p.Outchan <- ClassifiedWord{word, class}
 			positions[class] += fmt.Sprintf("TXT#%d-%d,", i, wordnum)
 			words[class] += word + ","
@@ -91,6 +126,11 @@ func (p *Parser) Parse() error {
 	}
 
 	p.Outchan <- ClassifiedWord{"", EOF}
+
+	// Info
+	info.TimeSpent = time.Since(t_start)
+	info.FileCount = len(p.inpath)
+
 	return nil
 }
 
