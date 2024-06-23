@@ -23,10 +23,10 @@ func main() {
 	processedWordsCount := 0
 
 	a := app.New()
-	w := a.NewWindow("MNLTP")
+	w := a.NewWindow("MNLPTK")
 
 	// Widgets
-	header := widget.NewRichTextFromMarkdown("# MNLTP\n___")
+	header := widget.NewRichTextFromMarkdown("# MNLPTK\n___")
 	header.Wrapping = fyne.TextWrapWord
 	header.Segments[0].(*widget.TextSegment).Style.Alignment = fyne.TextAlignCenter
 
@@ -159,7 +159,7 @@ func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory, infochan chan
 	// Layout
 	content := container.NewBorder(
 		container.NewVBox(
-			widget.NewLabel("Welcome to MNLTP!"),
+			widget.NewLabel("Welcome to MNLPTK!"),
 			container.NewVBox(
 				widget.NewLabel("Please select dictionary to use:"),
 				dictionarySelectedLabel,
