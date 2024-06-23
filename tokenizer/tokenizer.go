@@ -1,4 +1,4 @@
-package parser
+package tokenizer
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 
 var whitespaceOrPunctuation = regexp.MustCompile(`[\s\p{P}]+`)
 
-type Parser struct {
+type Tokenizer struct {
 	dict     *Dictionary
 	dictFile string
 	input    []*os.File
@@ -36,12 +36,12 @@ type Runinfo struct {
 	TimeWaited              time.Duration
 }
 
-func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory, infochan chan<- Runinfo) (*Parser, error) {
+func NewTokenizer(dict string, inpath []string, outpath string, classchan <-chan Wordcategory, infochan chan<- Runinfo) (*Tokenizer, error) {
 	dictionary, err := NewDictionaryFromFile(dict)
 	if err != nil {
 		return nil, err
 	}
-	var p Parser
+	var p Tokenizer
 	p.dictFile = dict
 	p.dict = dictionary
 	p.inpath = inpath
@@ -67,7 +67,7 @@ func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wo
 	return &p, nil
 }
 
-func (p *Parser) Parse() error {
+func (p *Tokenizer) Parse() error {
 	info := Runinfo{
 		WordPerCategory:         make(map[Wordcategory]int),
 		DistinctWordPerCategory: make(map[Wordcategory]int),
@@ -138,7 +138,7 @@ func (p *Parser) Parse() error {
 	return nil
 }
 
-func (p *Parser) Close() {
+func (p *Tokenizer) Close() {
 	for _, input := range p.input {
 		input.Close()
 	}

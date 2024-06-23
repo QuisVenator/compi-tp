@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/QuisVenator/compi-tp/parser"
+	"github.com/QuisVenator/compi-tp/tokenizer"
 )
 
 func usage() string {
 	return `
-	Usage: parser <input.txt> [output.csv [dictionary]]
+	Usage: tokenizer <input.txt> [output.csv [dictionary]]
 	The program reads an input file to analyze. Optionally the output filename can be specified (default: output.csv) and the dictionary file (default: dictionary.json).
 	The dictionary must be in either JSON or YAML format.
 	`
@@ -36,17 +36,17 @@ func main() {
 		dictionaryFilename = os.Args[3]
 	}
 
-	// Create the parser
-	classchan := make(chan parser.Wordcategory)
-	infochan := make(chan parser.Runinfo)
-	p, err := parser.NewParser(dictionaryFilename, []string{inputFilename}, outputFilename, classchan, infochan)
+	// Create the tokenizer
+	classchan := make(chan tokenizer.Wordcategory)
+	infochan := make(chan tokenizer.Runinfo)
+	p, err := tokenizer.NewTokenizer(dictionaryFilename, []string{inputFilename}, outputFilename, classchan, infochan)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	defer p.Close()
 
-	// Start the parser
+	// Start the tokenizer
 	go p.Parse()
 
 	// Start the display
@@ -55,11 +55,11 @@ func main() {
 
 // This function reads words and their classification from the output channel and displays them on the console.
 // Additionally, it reads words from the newwords channel and asks the use to classify them. The classification is then sent on the classes channel.
-func displayResults(output <-chan parser.ClassifiedWord, newwords <-chan string, classes chan<- parser.Wordcategory, infochan chan parser.Runinfo) {
+func displayResults(output <-chan tokenizer.ClassifiedWord, newwords <-chan string, classes chan<- tokenizer.Wordcategory, infochan chan tokenizer.Runinfo) {
 	for {
 		select {
 		case word := <-output:
-			if word.Class == parser.EOF {
+			if word.Class == tokenizer.EOF {
 				info := <-infochan
 				fmt.Printf("Word count: %d\n", info.WordCount)
 				fmt.Printf("Distinct word count: %d\n", info.DistinctWordCount)
@@ -82,16 +82,16 @@ func displayResults(output <-chan parser.ClassifiedWord, newwords <-chan string,
 			fmt.Printf("%s: %s\n", word.Word, word.Class)
 		case newword := <-newwords:
 			fmt.Printf("Please classify the word '%s':\n", newword)
-			for class := range parser.AvailableCategories {
-				fmt.Printf("%d: %s\n", class+1, parser.AvailableCategories[class])
+			for class := range tokenizer.AvailableCategories {
+				fmt.Printf("%d: %s\n", class+1, tokenizer.AvailableCategories[class])
 			}
 			var class int
 			fmt.Scan(&class)
-			for class < 1 || class > len(parser.AvailableCategories) {
+			for class < 1 || class > len(tokenizer.AvailableCategories) {
 				fmt.Println("Invalid class. Please enter a valid class:")
 				fmt.Scan(&class)
 			}
-			classes <- parser.AvailableCategories[class-1]
+			classes <- tokenizer.AvailableCategories[class-1]
 		}
 	}
 }

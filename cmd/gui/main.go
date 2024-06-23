@@ -12,7 +12,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/QuisVenator/compi-tp/parser"
+	"github.com/QuisVenator/compi-tp/tokenizer"
 )
 
 func main() {
@@ -61,8 +61,8 @@ func main() {
 
 	// Run update loop
 	updateLoop := func() {
-		userChosenClassCh := make(chan parser.Wordcategory)
-		infochan := make(chan parser.Runinfo)
+		userChosenClassCh := make(chan tokenizer.Wordcategory)
+		infochan := make(chan tokenizer.Runinfo)
 		p := startup(w, userChosenClassCh, infochan)
 		classifiedWordsCh := p.Outchan
 		newWordsCh := p.Newword
@@ -72,7 +72,7 @@ func main() {
 		for {
 			select {
 			case word := <-classifiedWordsCh:
-				if word.Class == parser.EOF {
+				if word.Class == tokenizer.EOF {
 					info := <-infochan
 					dialog.ShowInformation("Run Info", fmt.Sprintf("Word count: %d\nDistinct word count: %d\nNew word count: %d\nTime waited: %s\nTotal time: %s", info.WordCount, info.DistinctWordCount, info.NewWordCount, info.TimeWaited.String(), info.TimeSpent.String()), w)
 					close(infochan)
@@ -96,8 +96,8 @@ func main() {
 				// Create classification dialog
 				prompt := widget.NewLabel(fmt.Sprintf("Classify '%s'", word))
 
-				catBtns := make([]fyne.CanvasObject, len(parser.AvailableCategories))
-				for i, cat := range parser.AvailableCategories {
+				catBtns := make([]fyne.CanvasObject, len(tokenizer.AvailableCategories))
+				for i, cat := range tokenizer.AvailableCategories {
 					catBtns[i] = widget.NewButton(string(cat), func() {
 						userChosenClassCh <- cat
 						newWordsCount++
@@ -120,7 +120,7 @@ func main() {
 	w.ShowAndRun()
 }
 
-func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory, infochan chan parser.Runinfo) *parser.Parser {
+func startup(w fyne.Window, categoryCh <-chan tokenizer.Wordcategory, infochan chan tokenizer.Runinfo) *tokenizer.Tokenizer {
 	var exPath string
 	ex, err := os.Getwd()
 	if err != nil {
@@ -238,7 +238,7 @@ func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory, infochan chan
 	// Run loop for startup
 	for {
 		<-startCh
-		p, err := parser.NewParser(dictPath, inputFilePaths, outputPath, categoryCh, infochan)
+		p, err := tokenizer.NewTokenizer(dictPath, inputFilePaths, outputPath, categoryCh, infochan)
 		if err != nil {
 			dialog.ShowError(err, w)
 		} else {
