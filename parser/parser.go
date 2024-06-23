@@ -21,6 +21,7 @@ type Parser struct {
 	Outchan  chan ClassifiedWord
 	Newword  chan string
 	Classes  <-chan Wordcategory
+	Infochan chan<- Runinfo
 }
 
 type Runinfo struct {
@@ -35,7 +36,7 @@ type Runinfo struct {
 	TimeWaited              time.Duration
 }
 
-func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory) (*Parser, error) {
+func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wordcategory, infochan chan<- Runinfo) (*Parser, error) {
 	dictionary, err := NewDictionaryFromFile(dict)
 	if err != nil {
 		return nil, err
@@ -45,6 +46,7 @@ func NewParser(dict string, inpath []string, outpath string, classchan <-chan Wo
 	p.dict = dictionary
 	p.inpath = inpath
 	p.outpath = outpath
+	p.Infochan = infochan
 
 	for _, path := range inpath {
 		input, err := os.Open(path)
@@ -130,6 +132,8 @@ func (p *Parser) Parse() error {
 	// Info
 	info.TimeSpent = time.Since(t_start)
 	info.FileCount = len(p.inpath)
+
+	p.Infochan <- info
 
 	return nil
 }

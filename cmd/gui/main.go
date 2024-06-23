@@ -62,7 +62,8 @@ func main() {
 	// Run update loop
 	updateLoop := func() {
 		userChosenClassCh := make(chan parser.Wordcategory)
-		p := startup(w, userChosenClassCh)
+		infochan := make(chan parser.Runinfo)
+		p := startup(w, userChosenClassCh, infochan)
 		classifiedWordsCh := p.Outchan
 		newWordsCh := p.Newword
 		w.SetContent(content)
@@ -72,6 +73,9 @@ func main() {
 			select {
 			case word := <-classifiedWordsCh:
 				if word.Class == parser.EOF {
+					info := <-infochan
+					dialog.ShowInformation("Run Info", fmt.Sprintf("Word count: %d\nDistinct word count: %d\nNew word count: %d\nTime waited: %s\nTotal time: %s", info.WordCount, info.DistinctWordCount, info.NewWordCount, info.TimeWaited.String(), info.TimeSpent.String()), w)
+					close(infochan)
 					p.Close()
 					return
 				}
@@ -116,7 +120,7 @@ func main() {
 	w.ShowAndRun()
 }
 
-func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory) *parser.Parser {
+func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory, infochan chan parser.Runinfo) *parser.Parser {
 	var exPath string
 	ex, err := os.Getwd()
 	if err != nil {
@@ -234,7 +238,7 @@ func startup(w fyne.Window, categoryCh <-chan parser.Wordcategory) *parser.Parse
 	// Run loop for startup
 	for {
 		<-startCh
-		p, err := parser.NewParser(dictPath, inputFilePaths, outputPath, categoryCh)
+		p, err := parser.NewParser(dictPath, inputFilePaths, outputPath, categoryCh, infochan)
 		if err != nil {
 			dialog.ShowError(err, w)
 		} else {

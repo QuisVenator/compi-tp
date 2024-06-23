@@ -38,7 +38,8 @@ func main() {
 
 	// Create the parser
 	classchan := make(chan parser.Wordcategory)
-	p, err := parser.NewParser(dictionaryFilename, []string{inputFilename}, outputFilename, classchan)
+	infochan := make(chan parser.Runinfo)
+	p, err := parser.NewParser(dictionaryFilename, []string{inputFilename}, outputFilename, classchan, infochan)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -49,16 +50,33 @@ func main() {
 	go p.Parse()
 
 	// Start the display
-	displayResults(p.Outchan, p.Newword, classchan)
+	displayResults(p.Outchan, p.Newword, classchan, infochan)
 }
 
 // This function reads words and their classification from the output channel and displays them on the console.
 // Additionally, it reads words from the newwords channel and asks the use to classify them. The classification is then sent on the classes channel.
-func displayResults(output <-chan parser.ClassifiedWord, newwords <-chan string, classes chan<- parser.Wordcategory) {
+func displayResults(output <-chan parser.ClassifiedWord, newwords <-chan string, classes chan<- parser.Wordcategory, infochan chan parser.Runinfo) {
 	for {
 		select {
 		case word := <-output:
 			if word.Class == parser.EOF {
+				info := <-infochan
+				fmt.Printf("Word count: %d\n", info.WordCount)
+				fmt.Printf("Distinct word count: %d\n", info.DistinctWordCount)
+				for cat, count := range info.WordPerCategory {
+					fmt.Printf("Word count for category %s: %d\n", cat, count)
+				}
+				for cat, count := range info.DistinctWordPerCategory {
+					fmt.Printf("Distinct word count for category %s: %d\n", cat, count)
+				}
+				fmt.Printf("New word count: %d\n", info.NewWordCount)
+				for cat, count := range info.NewWordPerCategory {
+					fmt.Printf("New word count for category %s: %d\n", cat, count)
+				}
+				fmt.Printf("File count: %d\n", info.FileCount)
+				fmt.Printf("Time spent: %s\n", info.TimeSpent)
+				fmt.Printf("Time waited: %s\n", info.TimeWaited)
+				close(infochan)
 				return
 			}
 			fmt.Printf("%s: %s\n", word.Word, word.Class)
