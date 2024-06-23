@@ -51,8 +51,6 @@ func NewDictionary() *Dictionary {
 
 func NewDictionaryFromFile(filename string) (*Dictionary, error) {
 	var fileFormat = UNKNOWN
-
-	// TODO: Evaluate necessity of saving file format
 	if strings.HasSuffix(filename, ".json") {
 		fileFormat = JSON
 	} else if strings.HasSuffix(filename, ".yaml") {
