@@ -112,7 +112,7 @@ func (p *Parser) Parse() error {
 			auxmap[word]++
 
 			p.Outchan <- ClassifiedWord{word, class}
-			positions[class] += fmt.Sprintf("TXT#%d-%d,", i, wordnum)
+			positions[class] += fmt.Sprintf("TXT%d-%d,", i, wordnum)
 			words[class] += word + ","
 		}
 	}
