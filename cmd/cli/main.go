@@ -9,37 +9,45 @@ import (
 
 func usage() string {
 	return `
-	Usage: tokenizer <input.txt> [output.csv [dictionary]]
+	Usage: tokenizer -o output.csv -d dictionary.json input1.txt input2.txt ...
 	The program reads an input file to analyze. Optionally the output filename can be specified (default: output.csv) and the dictionary file (default: dictionary.json).
 	The dictionary must be in either JSON or YAML format.
 	`
 }
 
 func main() {
-	// Parse the command line arguments
+	// Parse the command line arguments with the flags package
 	if len(os.Args) < 2 {
 		fmt.Println(usage())
 		return
-	} else if len(os.Args) > 4 {
-		fmt.Println("Too many arguments")
-		fmt.Println(usage())
-		return
 	}
-
-	inputFilename := os.Args[1]
 	outputFilename := "output.csv"
 	dictionaryFilename := "dictionary.json"
-	if len(os.Args) > 2 {
-		outputFilename = os.Args[2]
-	}
-	if len(os.Args) > 3 {
-		dictionaryFilename = os.Args[3]
+	var inputFiles []string
+	for i := 1; i < len(os.Args); i++ {
+		if os.Args[i] == "-o" {
+			if i+1 >= len(os.Args) {
+				fmt.Println("Missing output filename")
+				return
+			}
+			outputFilename = os.Args[i+1]
+			i++
+		} else if os.Args[i] == "-d" {
+			if i+1 >= len(os.Args) {
+				fmt.Println("Missing dictionary filename")
+				return
+			}
+			dictionaryFilename = os.Args[i+1]
+			i++
+		} else {
+			inputFiles = append(inputFiles, os.Args[i])
+		}
 	}
 
 	// Create the tokenizer
 	classchan := make(chan tokenizer.Wordcategory)
 	infochan := make(chan tokenizer.Runinfo)
-	p, err := tokenizer.NewTokenizer(dictionaryFilename, []string{inputFilename}, outputFilename, classchan, infochan)
+	p, err := tokenizer.NewTokenizer(dictionaryFilename, inputFiles, outputFilename, classchan, infochan)
 	if err != nil {
 		fmt.Println(err)
 		return
