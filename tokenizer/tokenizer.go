@@ -78,6 +78,8 @@ func (p *Tokenizer) Parse() error {
 	positions := make(map[Wordcategory]string)
 	words := make(map[Wordcategory]string)
 
+	fulltext := ""
+
 	for i, input := range p.input {
 		wordnum := 0
 		Scanner := bufio.NewScanner(input)
@@ -102,6 +104,7 @@ func (p *Tokenizer) Parse() error {
 				info.NewWordCount++
 				info.NewWordPerCategory[class]++
 			}
+			fulltext += string(class) + " "
 			// Info
 			info.WordCount++
 			if auxmap[word] == 0 {
@@ -126,6 +129,9 @@ func (p *Tokenizer) Parse() error {
 		p.output.WriteString(strings.TrimSuffix(positions[cat], ","))
 		p.output.WriteString("\n")
 	}
+	fulltext = strings.TrimSuffix(fulltext, " ")
+	p.output.WriteString("\n\n\nFull Tokenized Text:\n")
+	p.output.WriteString(fulltext)
 
 	p.Outchan <- ClassifiedWord{"", EOF}
 
