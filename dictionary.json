@@ -1,4 +1,7 @@
 {
+  "a": {
+    "category": "Determiner"
+  },
   "an": {
     "category": "Adjective"
   },
@@ -38,6 +41,9 @@
   "quick": {
     "category": "Adjective"
   },
+  "random": {
+    "category": "Adjective"
+  },
   "text": {
     "category": "Noun"
   },
@@ -45,6 +51,6 @@
     "category": "Adverb"
   },
   "this": {
-    "category": "Adverb"
+    "category": "Pronoun"
   }
 }

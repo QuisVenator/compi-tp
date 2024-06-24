@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 
 	"fyne.io/fyne/v2"
@@ -88,10 +89,10 @@ func main() {
 					for _, cat := range tokenizer.AvailableCategories {
 						columns = append(columns,
 							widget.NewLabel(string(cat)),
-							widget.NewLabel(fmt.Sprintf("%d", info.WordPerCategory[cat])),
-							widget.NewLabel(fmt.Sprintf("%d", info.DistinctWordPerCategory[cat])),
-							widget.NewLabel(fmt.Sprintf("%d", info.DistinctWordPerCategory[cat]-info.NewWordPerCategory[cat])),
-							widget.NewLabel(fmt.Sprintf("%d", info.NewWordPerCategory[cat])),
+							widget.NewLabel(fmt.Sprintf("%d (%v%%)", info.WordPerCategory[cat], numOrNan(float32(info.WordPerCategory[cat])/float32(info.WordCount)*100))),
+							widget.NewLabel(fmt.Sprintf("%d (%v%%)", info.DistinctWordPerCategory[cat], numOrNan(float32(info.DistinctWordPerCategory[cat])/float32(info.WordPerCategory[cat])*100))),
+							widget.NewLabel(fmt.Sprintf("%d (%v%%)", info.DistinctWordPerCategory[cat]-info.NewWordPerCategory[cat], numOrNan(float32(info.DistinctWordPerCategory[cat]-info.NewWordPerCategory[cat])/float32(info.WordPerCategory[cat])*100))),
+							widget.NewLabel(fmt.Sprintf("%d (%v%%)", info.NewWordPerCategory[cat], numOrNan(float32(info.NewWordPerCategory[cat])/float32(info.WordPerCategory[cat])*100))),
 						)
 					}
 					columns = append(columns,
@@ -152,6 +153,14 @@ func main() {
 
 	go updateLoop()
 	w.ShowAndRun()
+}
+
+func numOrNan(n float32) string {
+	if math.IsNaN(float64(n)) {
+		return "-"
+	}
+	return fmt.Sprintf("%.1f", n)
+
 }
 
 func startup(w fyne.Window, categoryCh <-chan tokenizer.Wordcategory, infochan chan tokenizer.Runinfo) *tokenizer.Tokenizer {
