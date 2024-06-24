@@ -84,6 +84,20 @@ func displayResults(output <-chan tokenizer.ClassifiedWord, newwords <-chan stri
 				fmt.Printf("File count: %d\n", info.FileCount)
 				fmt.Printf("Time spent: %s\n", info.TimeSpent)
 				fmt.Printf("Time waited: %s\n", info.TimeWaited)
+
+				for _, cat := range tokenizer.AvailableCategories {
+					fmt.Printf("Category %s:\n", cat)
+					fmt.Printf("Total: %d\n", info.WordPerCategory[cat])
+					fmt.Printf("Distinct: %d\n", info.DistinctWordPerCategory[cat])
+					fmt.Printf("Old: %d\n", info.DistinctWordPerCategory[cat]-info.NewWordPerCategory[cat])
+					fmt.Printf("New: %d\n", info.NewWordPerCategory[cat])
+				}
+				fmt.Printf("Total:\n")
+				fmt.Printf("Total: %d\n", info.WordCount)
+				fmt.Printf("Distinct: %d\n", info.DistinctWordCount)
+				fmt.Printf("Old: %d\n", info.DistinctWordCount-info.NewWordCount)
+				fmt.Printf("New: %d\n", info.NewWordCount)
+
 				close(infochan)
 				return
 			}
