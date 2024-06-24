@@ -168,6 +168,16 @@ func (d *Dictionary) GetEntry(word string) (Wordcategory, bool) {
 	return Wordcategory(entry.Category), true
 }
 
+func (d *Dictionary) GetCategoryCount(category Wordcategory) int {
+	count := 0
+	for _, entry := range *d {
+		if entry.Category == string(category) {
+			count++
+		}
+	}
+	return count
+}
+
 // Category functions
 
 // This function will try to handle most cases of pluralizing and singularizing nouns

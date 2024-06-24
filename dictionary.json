@@ -1,8 +1,14 @@
 {
+  "an": {
+    "category": "Adjective"
+  },
   "brown": {
     "category": "Adjective"
   },
   "dog": {
+    "category": "Noun"
+  },
+  "example": {
     "category": "Noun"
   },
   "fence": {
@@ -13,6 +19,9 @@
   },
   "grey": {
     "category": "Adjective"
+  },
+  "is": {
+    "category": "Verb"
   },
   "jumped": {
     "category": "Verb"
@@ -29,7 +38,13 @@
   "quick": {
     "category": "Adjective"
   },
+  "text": {
+    "category": "Noun"
+  },
   "the": {
+    "category": "Adverb"
+  },
+  "this": {
     "category": "Adverb"
   }
 }

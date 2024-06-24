@@ -74,7 +74,41 @@ func main() {
 			case word := <-classifiedWordsCh:
 				if word.Class == tokenizer.EOF {
 					info := <-infochan
-					dialog.ShowInformation("Run Info", fmt.Sprintf("Word count: %d\nDistinct word count: %d\nNew word count: %d\nTime waited: %s\nTotal time: %s", info.WordCount, info.DistinctWordCount, info.NewWordCount, info.TimeWaited.String(), info.TimeSpent.String()), w)
+					dialog.ShowInformation("Run Info", fmt.Sprintf("Word count: %d\nDistinct word count: %d\nNew word count: %d\nTime waited: %s\nTotal time: %s\n", info.WordCount, info.DistinctWordCount, info.NewWordCount, info.TimeWaited.String(), info.TimeSpent.String()), w)
+
+					// Window for dictionary information
+					columns := []fyne.CanvasObject{
+						widget.NewLabel("Category"),
+						widget.NewLabel("Total"),
+						widget.NewLabel("Distinct"),
+						widget.NewLabel("Old"),
+						widget.NewLabel("New"),
+					}
+
+					for _, cat := range tokenizer.AvailableCategories {
+						columns = append(columns,
+							widget.NewLabel(string(cat)),
+							widget.NewLabel(fmt.Sprintf("%d", info.WordPerCategory[cat])),
+							widget.NewLabel(fmt.Sprintf("%d", info.DistinctWordPerCategory[cat])),
+							widget.NewLabel(fmt.Sprintf("%d", info.DistinctWordPerCategory[cat]-info.NewWordPerCategory[cat])),
+							widget.NewLabel(fmt.Sprintf("%d", info.NewWordPerCategory[cat])),
+						)
+					}
+					columns = append(columns,
+						widget.NewLabel("Total"),
+						widget.NewLabel(fmt.Sprintf("%d", info.WordCount)),
+						widget.NewLabel(fmt.Sprintf("%d", info.DistinctWordCount)),
+						widget.NewLabel(fmt.Sprintf("%d", info.DistinctWordCount-info.NewWordCount)),
+						widget.NewLabel(fmt.Sprintf("%d", info.NewWordCount)),
+					)
+
+					dictContent := container.NewGridWithColumns(5,
+						columns...,
+					)
+					dictW := a.NewWindow("Process Info")
+					dictW.SetContent(dictContent)
+					dictW.Show()
+
 					close(infochan)
 					p.Close()
 					return
